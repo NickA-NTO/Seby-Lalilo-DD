@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lalilo Performance Report — Seby Holzhauer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  line-height: 1.65;
+}
+.container { max-width: 920px; margin: 0 auto; padding: 32px 20px 64px; }
+
+header {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  padding: 36px 40px;
+  border-radius: 14px;
+  margin-bottom: 24px;
+}
+header h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+header .student { font-size: 1rem; opacity: 0.85; margin-bottom: 3px; }
+header .period { font-size: 0.85rem; opacity: 0.55; }
+
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 26px 30px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.07);
+}
+.card h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding-bottom: 11px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid #f0f2f5;
+}
+
+/* Summary grid */
+.summary-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.metric-box { background:#f8f9fc; border-radius:10px; padding:16px 12px; text-align:center; flex: 0 0 calc(20% - 10px); min-width: 128px; }
+.metric-box .mlabel { font-size:0.7rem; text-transform:uppercase; letter-spacing:0.6px; color:#999; margin-bottom:7px; }
+.metric-box .mval { font-size:1.5rem; font-weight:700; color:#1a1a2e; line-height:1.2; }
+.metric-box .msub { font-size:0.72rem; color:#bbb; margin-top:3px; }
+
+/* Tables */
+table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+th { text-align:left; padding:8px 12px; background:#f8f9fc; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; color:#777; font-weight:600; }
+td { padding:10px 12px; border-bottom:1px solid #f3f4f6; }
+tr:last-child td { border-bottom:none; }
+.total-row td { font-weight:700; background:#f8f9fc; }
+
+/* Accuracy chips — red=difficult, yellow=lower productive, green=productive, teal=consolidating, blue=too easy */
+.acc-below { background:#fde8e8; color:#c0392b; font-weight:700; padding:3px 9px; border-radius:20px; font-size:0.83rem; white-space:nowrap; }
+.acc-warn  { background:#fef9e7; color:#9a6700; font-weight:700; padding:3px 9px; border-radius:20px; font-size:0.83rem; white-space:nowrap; }
+.acc-mid   { background:#d5f5e3; color:#1a7a45; font-weight:700; padding:3px 9px; border-radius:20px; font-size:0.83rem; white-space:nowrap; }
+.acc-good  { background:#d1f2eb; color:#0e6655; font-weight:700; padding:3px 9px; border-radius:20px; font-size:0.83rem; white-space:nowrap; }
+.acc-easy  { background:#d6eaf8; color:#1a5276; font-weight:700; padding:3px 9px; border-radius:20px; font-size:0.83rem; white-space:nowrap; }
+
+/* Concern blocks — all neutral */
+.concern {
+  border-left: 4px solid #8fa8bc;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border-radius: 0 10px 10px 0;
+  background: #f5f8fb;
+}
+.concern:last-child { margin-bottom: 0; }
+.concern-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.concern h3 { font-size:0.97rem; font-weight:700; flex:1; min-width:180px; color:#1a1a2e; }
+.verdict {
+  display:inline-block; font-size:0.68rem; font-weight:700;
+  padding:3px 9px; border-radius:5px; text-transform:uppercase; letter-spacing:0.5px;
+  white-space:nowrap; margin-top:2px;
+  background:#dce8f2; color:#2c5f7e;
+}
+.concern p { font-size:0.9rem; color:#333; margin-bottom:8px; }
+.concern p:last-child { margin-bottom:0; }
+.concern .note { font-size:0.8rem; color:#999; font-style:italic; margin-top:8px; }
+
+/* ZPD bar */
+.zpd-bar { display:flex; border-radius:8px; overflow:hidden; height:30px; margin:14px 0 4px; }
+.zpd-seg { display:flex; align-items:center; justify-content:center; font-size:0.68rem; font-weight:700; color:white; padding:0 4px; text-align:center; overflow:hidden; white-space:nowrap; }
+.zpd-legend { display:flex; gap:16px; margin:10px 0 18px; flex-wrap:wrap; }
+.zpd-legend-item { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:#555; }
+.zpd-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+.footnote { font-size:0.76rem; color:#aaa; margin-top:10px; line-height:1.6; }
+
+/* References */
+.ref-card { background:#f8f9fc; border-radius:10px; padding:18px 22px; }
+.ref-card h2 { font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; color:#bbb; padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid #e8e8e8; }
+.ref-card p { font-size:0.76rem; color:#aaa; line-height:1.7; margin-bottom:4px; }
+
+@media (max-width:600px) {
+  header { padding:26px 22px; }
+  .card { padding:20px 18px; }
+  .metric-box { flex: 0 0 calc(50% - 6px); }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Lalilo Performance Report</h1>
+    <div class="student">Seby Holzhauer</div>
+    <div class="period">August 26, 2025 – February 18, 2026 &nbsp;·&nbsp; Alpha School, Brownsville</div>
+  </header>
+
+  <!-- At a Glance -->
+  <div class="card">
+    <h2>At a Glance</h2>
+    <div class="summary-grid">
+      <div class="metric-box">
+        <div class="mlabel">Days Active</div>
+        <div class="mval">94</div>
+      </div>
+      <div class="metric-box">
+        <div class="mlabel">Lessons Mastered</div>
+        <div class="mval">203</div>
+      </div>
+      <div class="metric-box">
+        <div class="mlabel">Overall Accuracy</div>
+        <div class="mval">79%</div>
+      </div>
+      <div class="metric-box">
+        <div class="mlabel">Total Time</div>
+        <div class="mval">61.2h</div>
+      </div>
+      <div class="metric-box">
+        <div class="mlabel">Total XP Earned</div>
+        <div class="mval">1,939</div>
+      </div>
+      <div class="metric-box">
+        <div class="mlabel">XP / Minute</div>
+        <div class="mval">0.53</div>
+      </div>
+      <div class="metric-box">
+        <div class="mlabel">XP / Min (waste adj.)</div>
+        <div class="mval">1.06</div>
+        <div class="msub">conservative — 50% waste</div>
+      </div>
+    </div>
+    <p class="footnote">Research analysis of study footage found 50–70% of recorded app time was idle or unproductive. The waste-adjusted rate uses the conservative 50% figure (1,837 effective minutes). Lesson counts and accuracy are outcome measures unaffected by this adjustment.</p>
+  </div>
+
+  <!-- Session Breakdown -->
+  <div class="card">
+    <h2>Session Breakdown</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Days</th>
+          <th>Accuracy</th>
+          <th>Minutes</th>
+          <th>XP</th>
+          <th>XP/Min</th>
+          <th>XP/Min (adj.)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Session 1</td><td>18</td>
+          <td><span class="acc-warn">73%</span></td>
+          <td>796</td><td>156</td><td>0.20</td><td>0.39</td>
+        </tr>
+        <tr>
+          <td>Session 2</td><td>52</td>
+          <td><span class="acc-mid">80%</span></td>
+          <td>2,064</td><td>1,360</td><td>0.66</td><td>1.32</td>
+        </tr>
+        <tr>
+          <td>Session 3</td><td>23</td>
+          <td><span class="acc-mid">80%</span></td>
+          <td>814</td><td>423</td><td>0.52</td><td>1.04</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total</td><td>94</td><td>79%</td>
+          <td>3,674</td><td>1,939</td><td>0.53</td><td>1.06</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="footnote">Session accuracy is weighted by minutes. XP/Min (adj.) uses 50% of recorded minutes as effective time (conservative waste figure). One active day falls between session boundaries and is included in the overall total only.</p>
+  </div>
+
+  <!-- Addressing the Concern -->
+  <div class="card">
+    <h2>Was Seby Placed at the Right Level?</h2>
+
+    <div class="concern">
+      <div class="concern-header">
+        <h3>Was the content too difficult for him?</h3>
+        <span class="verdict">Not Sustained</span>
+      </div>
+      <p>Across the full period, Seby's overall accuracy was 79%. Session 1 came in at 73% — the lower boundary of the productive learning zone — with Sessions 2 and 3 both at 80%. The accuracy zone breakdown shows that 91% of total time was spent in the productive challenge zone, the target range for adaptive learning programs.</p>
+      <p>August comprised 4 days of work at 67% accuracy. In September, 3 of 14 sessions fell below the productive threshold at 67–68%. From October onward, performance was consistently within the productive range. The data does not support characterising the overall placement as too difficult.</p>
+    </div>
+
+    <div class="concern">
+      <div class="concern-header">
+        <h3>Does difficulty explain the off-task behavior?</h3>
+        <span class="verdict">Cannot Be Confirmed</span>
+      </div>
+      <p>Research analysis of study footage documented that <strong>50–70% of recorded app time was idle or unproductive</strong> across the period. This is an overall figure — the data does not identify which sessions had higher or lower waste. Without a session-level waste breakdown, it is not possible to assess whether the off-task behavior was concentrated in the same period as the early accuracy dip or distributed across the full period.</p>
+    </div>
+
+    <div class="concern">
+      <div class="concern-header">
+        <h3>Did Seby move through the content too quickly?</h3>
+        <span class="verdict">Not Supported</span>
+      </div>
+      <p>Seby advanced <strong>0.66 grade equivalents</strong> in 5.75 months against a target of <strong>1.15 grade equivalents</strong> — reaching 57% of the expected pace. The data shows movement below the target rate, not above it.</p>
+      <p>Accounting for the documented 50% time waste (conservative figure), the effective learning rate projects to <strong>1.32 grade equivalents</strong> over the same period — 15% above the target. The below-target pace is attributable to time efficiency, not to the content being too easy or the progression being too fast.</p>
+    </div>
+  </div>
+
+  <!-- Accuracy Zones — Applied to Seby -->
+  <div class="card">
+    <h2>Accuracy Zones — Seby's Distribution</h2>
+    <p style="font-size:0.88rem; color:#555; margin-bottom:2px;">The bar below shows the proportion of Seby's total time spent in each accuracy zone.</p>
+
+    <!-- Proportional bar: below 70% = ~1% (min-width for visibility), productive 70-85% = 91%, consolidating 85-95% = 8% -->
+    <div class="zpd-bar">
+      <div class="zpd-seg" style="background:#e74c3c; width:2%; min-width:8px;" title="Below 70%: 51 min (1%)"></div>
+      <div class="zpd-seg" style="background:#27ae60; width:90%;">91% of time</div>
+      <div class="zpd-seg" style="background:#16a085; width:8%;">8%</div>
+    </div>
+    <div class="zpd-legend">
+      <div class="zpd-legend-item"><div class="zpd-dot" style="background:#e74c3c;"></div>Below 70% — too difficult</div>
+      <div class="zpd-legend-item"><div class="zpd-dot" style="background:#27ae60;"></div>70–85% — productive challenge</div>
+      <div class="zpd-legend-item"><div class="zpd-dot" style="background:#16a085;"></div>85–95% — consolidating</div>
+      <div class="zpd-legend-item"><div class="zpd-dot" style="background:#2980b9;"></div>95%+ — too easy</div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Zone</th><th>Accuracy</th><th>Seby's Time</th><th>% of Period</th><th>What it means</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Too difficult</td>
+          <td><span class="acc-below">Below 70%</span></td>
+          <td>51 min</td><td><strong>1%</strong></td>
+          <td>Content likely exceeds current ability</td>
+        </tr>
+        <tr>
+          <td>Productive challenge</td>
+          <td><span class="acc-mid">70–85%</span></td>
+          <td>3,330 min</td><td><strong>91%</strong></td>
+          <td>Working at the edge of current ability — the target learning zone</td>
+        </tr>
+        <tr>
+          <td>Consolidating</td>
+          <td><span class="acc-good">85–95%</span></td>
+          <td>293 min</td><td><strong>8%</strong></td>
+          <td>Reinforcing skills already largely known</td>
+        </tr>
+        <tr>
+          <td>Too easy</td>
+          <td><span class="acc-easy">95%+</span></td>
+          <td>0 min</td><td><strong>0%</strong></td>
+          <td>Content below current ability</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="footnote">Zone assignment based on monthly accuracy figures. Time in each zone is the sum of minutes for months falling within that accuracy range.</p>
+  </div>
+
+  <!-- References -->
+  <div class="ref-card">
+    <h2>References</h2>
+    <p>Kalyuga, S. (2007). Expertise reversal effect and its implications for learner-tailored instruction. <em>Educational Psychology Review, 19</em>(4), 509–539.</p>
+    <p>Plass, J. L., Homer, B. D., &amp; Kinzer, C. K. (2015). Foundations of game-based learning. <em>Educational Psychologist, 50</em>(4), 258–283.</p>
+    <p>National Reading Panel. (2000). <em>Teaching children to read.</em> NICHD.</p>
+  </div>
+
+</div>
+</body>
+</html>
